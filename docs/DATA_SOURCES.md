@@ -45,8 +45,7 @@ crises — exactly the right failure order.
 ```
 collect_daily.py   FRED energy + gold-api metals + FRED/WB monthly
 build_pack.py      unit normalization, multi-source median, rolling vol
-sign_pack.py       Ed25519 signature (key in GitHub Secrets)
-verify_pack.py     client-side verification (also run in CI)
+anchor_ots.py      OpenTimestamps Bitcoin anchoring (optional, zero-cost)
 ```
 
 Distribution: GitHub Releases (`latest` tag) + IPFS + Bluetooth/QR
@@ -77,9 +76,9 @@ also anchored to Bitcoin via OpenTimestamps calendar servers — zero cost,
 zero maintenance. It answers exactly one question: "was the history
 rewritten?" — with a proof that not even GitHub could have produced
 retroactively. It is *not* in the daily verification path: RPC access is
-blocked in several target regions, and offline (Bluetooth/QR) transfers
-can't reach the chain. Pack signatures (Ed25519) remain available as an
-optional convenience layer for those who prefer them.
+blocked in several target regions, and offline transfers can't reach the
+chain. There are **no private keys anywhere** in the system — trust lives
+entirely in public, replicated, tamper-evident history.
 
 Client-side verification: `barter/gitaudit.py` — commit existence,
 settlement period, multi-mirror agreement.

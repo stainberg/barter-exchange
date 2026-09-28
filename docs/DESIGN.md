@@ -80,7 +80,9 @@ a private key held by the maintainer. Fairness comes from *accountability*:
 anyone can publish bad data, but no one can do it invisibly — git's hash
 chain plus multi-mirror agreement makes history rewriting a public act.
 An optional OpenTimestamps anchor to Bitcoin adds a "history was not
-rewritten" proof that survives even the platform itself. Details:
+rewritten" proof that survives even the platform itself. No private keys
+exist anywhere in the system — trust lives in public, replicated,
+tamper-evident history. Details:
 [DATA_SOURCES.md](DATA_SOURCES.md).
 
 ### 6. Mathematics must be provable; backtests only calibrate parameters
@@ -104,7 +106,8 @@ prices the deliverable-now, not expectations.
 ## Data pipeline
 
 Daily pack built by GitHub Actions from free public sources (FRED, gold-api,
-World Bank mirror), Ed25519-signed, distributed via Releases/IPFS/peer transfer.
+World Bank mirror), bound to the public git history, distributed via
+Releases/IPFS/peer transfer.
 Full analysis: [DATA_SOURCES.md](DATA_SOURCES.md).
 
 ## Non-goals (v1)

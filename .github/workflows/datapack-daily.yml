@@ -28,13 +28,6 @@ jobs:
           python pipeline/collect_daily.py
           python pipeline/build_pack.py
 
-      - name: 签名数据包（可选层，见 docs/DATA_SOURCES.md）
-        env:
-          PACK_SIGNING_KEY: ${{ secrets.PACK_SIGNING_KEY }}
-        run: |
-          pip install pynacl
-          python pipeline/sign_pack.py
-
       - name: OpenTimestamps 锚定（保险丝层，零成本）
         continue-on-error: true    # 日历服务器不可达不阻塞主流程
         run: |
@@ -52,10 +45,9 @@ jobs:
         # 注：包内 code_commit = 构建时的代码 commit（自指哈希不可行）；
         # 包文件本身随本步进入历史，客户端验证"文件在历史中 + 已沉淀 + 多镜像一致"。
 
-      - name: 自验：签名可验证 + 引擎可加载
+      - name: 自验：引擎可加载 + 全量测试
         run: |
           pip install pandas openpyxl   # tests 读取 xlsx 需要
-          python pipeline/verify_pack.py
           python -m barter.tests
 
       - name: 发布到 Releases（带日期 tag）
