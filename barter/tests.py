@@ -288,6 +288,61 @@ def test_gitaudit():
     check("缺 code_commit 的数据包被拒绝", not r5.ok)
 
 
+def test_cli_smoke():
+    """CLI 冒烟测试：各子命令不崩溃 + 输出格式正确。"""
+    print("\n[12] CLI 冒烟")
+    import io, contextlib, json as _json, tempfile
+    from barter.cli import main
+
+    # 自建合成数据包文件（不依赖 data/datapack_latest.json，CI 友好）
+    tmp = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+    _json.dump(make_pack().raw, tmp)
+    tmp.close()
+    pack_path = tmp.name
+
+    # --list
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = main(["--list"])
+    check("--list 正常", rc == 0 and "小麦" in buf.getvalue())
+
+    # 正常报价
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = main(["小麦", "1", "柴油", "--pack", pack_path])
+    out = buf.getvalue()
+    check("CLI 报价含双输出", rc == 0 and "参考成交价" in out and "议价区间" in out,
+          out[:100])
+
+    # --qty-b 出价判断
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = main(["鸡蛋", "30", "面粉", "--qty-b", "100", "--pack", pack_path])
+    check("--qty-b 出价判断", rc == 0, buf.getvalue()[:100])
+
+    # --detail 计算明细
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = main(["小麦", "1", "柴油", "--detail", "--pack", pack_path])
+    check("--detail 含计算明细", rc == 0 and "计算明细" in buf.getvalue())
+
+    # --calibrate（写入临时路径，避免副作用）
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = main(["--calibrate", "coffee", "5.1"])
+    check("--calibrate 正常", rc == 0 and "已本地校准" in buf.getvalue())
+    if os.path.exists("data/local_calibration.json"):
+        os.remove("data/local_calibration.json")
+
+    # 未知商品
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = main(["不存在", "1", "柴油", "--pack", pack_path])
+    check("未知商品提示", rc == 1 and "未知商品" in buf.getvalue())
+
+    os.unlink(pack_path)
+
+
 def test_real_datapack():
     print("\n[9] 真实数据包（世界银行现货基准价）")
     if not os.path.exists("data/cmo_monthly.xlsx"):
@@ -348,6 +403,7 @@ if __name__ == "__main__":
     test_systemic_shock_refuses()
     test_calibration()
     test_gitaudit()
+    test_cli_smoke()
     test_real_datapack()
     demo_scenarios()
     print(f"\n{'=' * 40}\n通过 {PASS} / {PASS + FAIL}")
