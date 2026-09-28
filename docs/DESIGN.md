@@ -1,5 +1,9 @@
 # Design Philosophy
 
+> [README](../README.md) · [Design](DESIGN.md) · [Math](MATH.md) · [Backtesting](BACKTESTING.md) · [Data Sources](DATA_SOURCES.md)
+
+---
+
 > The barter reference tool: a ruler, not a currency.
 
 ## The problem
@@ -114,3 +118,7 @@ Full analysis: [DATA_SOURCES.md](DATA_SOURCES.md).
 
 No accounts, no matching, no chat, no fiat display, no non-tradables
 (housing, local services, electricity).
+
+---
+
+*Keywords: barter, currency collapse, hyperinflation, commodity anchor, reference price, negotiation band*

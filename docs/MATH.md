@@ -1,5 +1,9 @@
 # Mathematical Foundations
 
+> [README](../README.md) · [Design](DESIGN.md) · [Math](MATH.md) · [Backtesting](BACKTESTING.md) · [Data Sources](DATA_SOURCES.md)
+
+---
+
 > All core calculations rest on theorems, not on backtest luck.
 > Backtests calibrate parameter *ranges*; they never justify structure.
 > Theorem numbers map to comments in `barter/engine.py`.
@@ -93,3 +97,7 @@ conservatism (wider bands), consistent with "silence over misleading."
 | Systemic-shock threshold | vol ≥ 60% ann. & ratio ≤ 1.8 | crisis calibration |
 
 Adjusting these never requires re-proving theorems; changing E1–E4 does.
+
+---
+
+*Keywords: numéraire invariance, log-symmetric band, reciprocity, formal proof, barter mathematics*

@@ -1,5 +1,9 @@
 # Backtesting
 
+> [README](../README.md) · [Design](DESIGN.md) · [Math](MATH.md) · [Backtesting](BACKTESTING.md) · [Data Sources](DATA_SOURCES.md)
+
+---
+
 > Role: **calibrate parameter ranges** and stress-test behavior under real crises.
 > Structure is proven in [MATH.md](MATH.md); this document answers only
 > "are the chosen ranges acceptable?"
@@ -84,3 +88,7 @@ python merge_backtests.py        # unified dataset + level grading
   with a daily pipeline; grain daily sources not yet wired).
 - VES/IRR parallel rates approximate. Local basis unmeasured — needs
   field data from target regions. RUB ends 2022-03 (ECB suspension).
+
+---
+
+*Keywords: backtest, Venezuela, Argentina, Iran, Russia, 2020 oil crash, 2026 Iran war, Hormuz*

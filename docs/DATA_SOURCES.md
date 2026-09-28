@@ -1,5 +1,9 @@
 # Data Sources & Daily Pack Pipeline
 
+> [README](../README.md) · [Design](DESIGN.md) · [Math](MATH.md) · [Backtesting](BACKTESTING.md) · [Data Sources](DATA_SOURCES.md)
+
+---
+
 > Server role is minimized to "pack builder": GitHub Actions cron +
 > Releases/IPFS distribution. Zero cost, CDN-friendly, censorship-resilient.
 
@@ -88,3 +92,7 @@ settlement period, multi-mirror agreement.
 Single-source manipulation → median + 3σ trimming + δ_data floor.
 GitHub blocked somewhere → IPFS + peer transfer (packs are plain JSON).
 Free-tier termination → degrade to monthly for affected anchors only.
+
+---
+
+*Keywords: commodity data, FRED, gold-api, World Bank, git history trust, OpenTimestamps*
