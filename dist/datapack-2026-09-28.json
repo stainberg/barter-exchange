@@ -1,7 +1,7 @@
 {
- "generated": "2026-09-28T07:41:16.612483+00:00",
+ "generated": "2026-09-28T07:53:53.395736+00:00",
  "source": "FRED daily (energy) + gold-api (metals) + FRED/WB monthly",
- "code_commit": "a8d490a1b97e65e4d07f3c0a34e444ad1b6a5616",
+ "code_commit": "cb9cd7a49fc9b1ed28bb4ec6f57394680b485d98",
  "anchors": {
   "crude": {
    "price_usd_per_unit": 114.89,
@@ -28,9 +28,9 @@
    "freq": "daily"
   },
   "gold": {
-   "price_usd_per_unit": 4182.700195,
+   "price_usd_per_unit": 4154.899902,
    "sources": {
-    "gold-api": 4182.700195
+    "gold-api": 4154.899902
    },
    "vol20d_ann": 0.15,
    "history_12m": [],
@@ -38,9 +38,9 @@
    "freq": "daily"
   },
   "silver": {
-   "price_usd_per_unit": 61.764,
+   "price_usd_per_unit": 61.241001,
    "sources": {
-    "gold-api": 61.764
+    "gold-api": 61.241001
    },
    "vol20d_ann": 0.15,
    "history_12m": [],
