@@ -73,7 +73,17 @@ The system says "I don't know" rather than inventing precision. Every quote
 ships with: data freshness, full δ decomposition, and the anchor chain.
 Neutrality is enforced by auditability, not promises.
 
-### 5. Mathematics must be provable; backtests only calibrate parameters
+### 5. Trust root: public history, not private keys
+
+Data packs bind to the **public git history** (a `code_commit` field), not to
+a private key held by the maintainer. Fairness comes from *accountability*:
+anyone can publish bad data, but no one can do it invisibly — git's hash
+chain plus multi-mirror agreement makes history rewriting a public act.
+An optional OpenTimestamps anchor to Bitcoin adds a "history was not
+rewritten" proof that survives even the platform itself. Details:
+[DATA_SOURCES.md](DATA_SOURCES.md).
+
+### 6. Mathematics must be provable; backtests only calibrate parameters
 
 The calculation structure is theorem-proven ([MATH.md](MATH.md)):
 numéraire invariance, band reciprocity (AB/BA consistency), transitivity,

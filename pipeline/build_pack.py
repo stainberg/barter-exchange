@@ -13,7 +13,18 @@ import glob
 import json
 import math
 import os
+import subprocess
 from datetime import datetime, timezone
+
+
+def git_head() -> str:
+    """当前构建所在的 git commit——数据包与公开历史的绑定锚点（DATA_SOURCES §信任根）。
+    验证者凭此 commit 在任意镜像（GitHub/GitLab/IPFS）核对包的存在性。"""
+    try:
+        return subprocess.run(["git", "rev-parse", "HEAD"],
+                              capture_output=True, text=True, check=True).stdout.strip()
+    except Exception:
+        return ""
 
 TROY_OZ_PER_GRAM = 1 / 31.1035
 LB_PER_TONNE = 2204.62
@@ -102,6 +113,7 @@ def build(raw_path: str) -> dict:
     pack = {
         "generated": datetime.now(timezone.utc).isoformat(),
         "source": "FRED daily (energy) + gold-api (metals) + FRED/WB monthly",
+        "code_commit": git_head(),
         "anchors": anchors,
     }
     return pack

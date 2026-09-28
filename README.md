@@ -42,7 +42,7 @@ curl -L -o data/datapack_latest.json \
 
 1. **Structure is proven** (MATH.md); backtests only calibrate parameters.
 2. **Band width ≤ 40%** — degrade or stay silent rather than fake precision.
-3. **Signed packs only** — any data pack must verify before loading.
+3. **Public-history trust** — every pack binds to a git commit; clients verify existence, settlement, and multi-mirror agreement (Ed25519 signatures optional).
 
 ---
 
@@ -83,7 +83,7 @@ curl -L -o data/datapack_latest.json \
 
 1. **数学结构可证明**（MATH.md），回测只负责标定参数范围；
 2. **区间全宽 ≤ 40%**——给不出窄区间就降级或沉默，绝不用宽区间假装精确；
-3. **只加载验签通过的数据包**——任何渠道传来的数据包必须先验签。
+3. **公开历史即信任根**——每个数据包绑定 git commit，客户端验证其存在性、沉淀期与多镜像一致性（Ed25519 签名为可选增强）。
 
 ## License
 

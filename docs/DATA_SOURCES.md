@@ -53,6 +53,37 @@ Distribution: GitHub Releases (`latest` tag) + IPFS + Bluetooth/QR
 peer transfer for offline regions. Pack history in git = audit log.
 Multi-signature by independent maintainers is the governance roadmap.
 
+## Trust root: public history, not private keys
+
+The daily pack carries a `code_commit` field — the git commit of the build.
+The trust chain is **the public history itself**, not a private key:
+
+- **git's hash chain** makes history tamper-evident: rewriting any commit
+  rewrites all subsequent hashes, visible on every mirror;
+- **any mirror is self-authenticating**: knowing one trusted commit hash,
+  a clone from GitHub, GitLab, IPFS, or a friend's USB stick can all be
+  verified against it;
+- **settlement delay**: clients only accept commits that have existed
+  ≥ 24h on multiple independent mirrors — an attack is publicly visible
+  *before* it can be used. Daily packs can afford this delay (δ_vol's √T
+  term already prices data age honestly).
+
+This converts unilateral power into public accountability: the maintainer
+*can* publish bad data, but cannot do so invisibly. Fairness comes from
+"wrongdoing is a public broadcast," not from trusting the operator.
+
+**OpenTimestamps layer (the fuse, not the wall):** each pack's hash is
+also anchored to Bitcoin via OpenTimestamps calendar servers — zero cost,
+zero maintenance. It answers exactly one question: "was the history
+rewritten?" — with a proof that not even GitHub could have produced
+retroactively. It is *not* in the daily verification path: RPC access is
+blocked in several target regions, and offline (Bluetooth/QR) transfers
+can't reach the chain. Pack signatures (Ed25519) remain available as an
+optional convenience layer for those who prefer them.
+
+Client-side verification: `barter/gitaudit.py` — commit existence,
+settlement period, multi-mirror agreement.
+
 ## Risks
 
 Single-source manipulation → median + 3σ trimming + δ_data floor.

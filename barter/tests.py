@@ -261,6 +261,33 @@ def test_calibration():
               f"{q1.ratio_mid} vs {q2.ratio_mid}")
 
 
+def test_gitaudit():
+    """git 历史绑定验证（DATA_SOURCES §信任根）。"""
+    print("\n[11] git 历史绑定验证")
+    import subprocess
+    from barter.gitaudit import check_commit, check_pack
+
+    # 用当前仓库自身做验证载体
+    head = subprocess.run(["git", "rev-parse", "HEAD"],
+                          capture_output=True, text=True).stdout.strip()
+    r = check_commit(".", head, settle_hours=0)
+    check("当前 HEAD 存在且通过（沉淀期=0）", r.ok and r.commit_found,
+          r.detail)
+
+    r2 = check_commit(".", "0" * 40, settle_hours=0)
+    check("伪造 commit 被拒绝", not r2.ok and not r2.commit_found)
+
+    r3 = check_commit(".", head, settle_hours=10**6)
+    check("未过沉淀期被拒绝", not r3.ok and not r3.settled, r3.detail)
+
+    pack = {"code_commit": head, "anchors": {}}
+    r4 = check_pack(pack, ".", settle_hours=0)
+    check("数据包绑定验证通过", r4.ok, r4.detail)
+
+    r5 = check_pack({"anchors": {}}, ".", settle_hours=0)
+    check("缺 code_commit 的数据包被拒绝", not r5.ok)
+
+
 def test_real_datapack():
     print("\n[9] 真实数据包（世界银行现货基准价）")
     if not os.path.exists("data/cmo_monthly.xlsx"):
@@ -320,6 +347,7 @@ if __name__ == "__main__":
     test_refuse_extreme_vol()
     test_systemic_shock_refuses()
     test_calibration()
+    test_gitaudit()
     test_real_datapack()
     demo_scenarios()
     print(f"\n{'=' * 40}\n通过 {PASS} / {PASS + FAIL}")
