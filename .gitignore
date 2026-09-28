@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 数据产物（大文件不入库，由流水线生成）
+data/cmo_monthly.xlsx
+data/cmo_monthly_new.xlsx
+data/cmo_new.xlsx
+data/datapack_latest.json
+data/local_calibration.json
+backtest_out/*.csv
+
+# 图表可再生成，不入库
+backtest_out/*.png
+
+# 系统
+.DS_Store

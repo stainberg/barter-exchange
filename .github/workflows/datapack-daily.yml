@@ -1,0 +1,59 @@
+# 数据包每日生产线（数据源方案 §5/§7）
+#
+# 每天 UTC 06:00 采集 → 打包 → 签名 → 发布到 Releases
+# 抗封锁：GitHub Pages/Releases 全球 CDN + IPFS 可选 + 数据包纯 JSON 任意渠道可传
+
+name: datapack-daily
+
+on:
+  schedule:
+    - cron: "0 6 * * *"     # UTC 06:00
+  workflow_dispatch: {}      # 允许手动触发
+
+permissions:
+  contents: write            # 发布 Release 需要
+
+jobs:
+  build-pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 采集 + 构建数据包
+        run: |
+          python pipeline/collect_daily.py
+          python pipeline/build_pack.py
+
+      - name: 签名数据包
+        env:
+          PACK_SIGNING_KEY: ${{ secrets.PACK_SIGNING_KEY }}
+        run: python pipeline/sign_pack.py
+
+      - name: 自验：签名可验证 + 引擎可加载
+        run: |
+          python pipeline/verify_pack.py
+          python -m barter.tests
+
+      - name: 发布到 Releases（带日期 tag）
+        id: date
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pack-${{ steps.date.outputs.date }}
+          name: 数据包 ${{ steps.date.outputs.date }}
+          files: dist/datapack-${{ steps.date.outputs.date }}.json
+
+      - name: 更新 latest 指针（客户端固定拉这个）
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: 最新数据包
+          files: dist/datapack-latest.json
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
