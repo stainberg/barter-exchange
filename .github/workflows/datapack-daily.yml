@@ -28,25 +28,6 @@ jobs:
           python pipeline/collect_daily.py
           python pipeline/build_pack.py
 
-      - name: 提交数据包到公开历史（信任根：git 历史绑定）
-        run: |
-          git config user.name "datapack-bot"
-          git config user.email "bot@barter-exchange"
-          git add dist/ data/raw/
-          git commit -m "datapack $(date -u +%Y-%m-%d)" || echo "无变更"
-          git push
-
-      - name: 捕获绑定 commit（写入数据包元信息）
-        id: bind
-        run: |
-          COMMIT=$(git rev-parse HEAD)
-          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
-          # 重新打包以嵌入真实绑定 commit（自指哈希不可行，
-          # 故绑定的是"触发本次构建的代码 commit"，包文件本身在历史中）
-          python pipeline/build_pack.py
-          git add dist/ && git commit -m "bind: $COMMIT" || true
-          git push
-
       - name: 签名数据包（可选层，见 docs/DATA_SOURCES.md）
         env:
           PACK_SIGNING_KEY: ${{ secrets.PACK_SIGNING_KEY }}
@@ -57,15 +38,23 @@ jobs:
       - name: OpenTimestamps 锚定（保险丝层，零成本）
         continue-on-error: true    # 日历服务器不可达不阻塞主流程
         run: |
-          pip install opentimestamps
+          pip install opentimestamps-client
           python pipeline/anchor_ots.py
           python pipeline/anchor_ots.py --upgrade || true
-          git add dist/*.ots 2>/dev/null
-          git commit -m "ots: anchor receipts" || true
+
+      - name: 提交数据包到公开历史（信任根：git 历史绑定）
+        run: |
+          git config user.name "datapack-bot"
+          git config user.email "bot@barter-exchange"
+          git add dist/ data/raw/
+          git commit -m "datapack $(date -u +%Y-%m-%d)" || echo "无变更"
           git push
+        # 注：包内 code_commit = 构建时的代码 commit（自指哈希不可行）；
+        # 包文件本身随本步进入历史，客户端验证"文件在历史中 + 已沉淀 + 多镜像一致"。
 
       - name: 自验：签名可验证 + 引擎可加载
         run: |
+          pip install pandas openpyxl   # tests 读取 xlsx 需要
           python pipeline/verify_pack.py
           python -m barter.tests
 
