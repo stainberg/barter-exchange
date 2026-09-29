@@ -539,13 +539,27 @@ def test_coverage_gaps():
     os.unlink(sp2)
 
     # --- build_datapack: as_of 截断 + 数据不足默认波动率 ---
+    # CI 无真实 xlsx，用合成测试夹具
     from barter.build_datapack import build
-    if os.path.exists("data/cmo_monthly.xlsx"):
-        p = build("data/cmo_monthly.xlsx", as_of="2020-06")
+    xlsx = "data/cmo_monthly.xlsx" if os.path.exists("data/cmo_monthly.xlsx") \
+           else "data/cmo_monthly_test.xlsx"
+    if os.path.exists(xlsx):
+        # as_of 取夹具/真实数据都存在的中间点
+        import pandas as _pd
+        raw_check = _pd.read_excel(xlsx, sheet_name="Monthly Prices", skiprows=4)
+        months = sorted(m for m in (str(v) for v in raw_check.iloc[:, 0].tolist())
+                        if m and m[0].isdigit() and "M" in m)
+        mid_month = months[len(months) // 2]  # 取中间月份确保有数据
+        as_of = mid_month.replace("M", "-")
+        p = build(xlsx, as_of=as_of)
         check("build_datapack as_of 截断",
-              all(a["as_of"] <= "2020-06-01" for a in p["anchors"].values()))
+              all(a["as_of"] <= f"{as_of}-01" for a in p["anchors"].values()))
+        check("build_datapack 全部锚定品有价格",
+              all(a["price_usd_per_unit"] > 0 for a in p["anchors"].values()))
+        check("build_datapack 全部锚定品有波动率",
+              all(a["vol20d_ann"] > 0 for a in p["anchors"].values()))
     else:
-        check("build_datapack as_of 截断", True)  # CI 无数据文件时跳过
+        check("build_datapack as_of 截断", True)  # 无数据文件时跳过
 
 
 def test_units():
