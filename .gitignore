@@ -16,3 +16,5 @@ backtest_out/*.png
 
 # 系统
 .DS_Store
+data/wfp_foodprices.csv
+data/wfp_part*.csv

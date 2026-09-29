@@ -386,6 +386,52 @@ def test_frame_consistency():
         del taxonomy.ANCHORS["wheat_ppp"]
 
 
+def test_ppp_sampling():
+    """PPP 市场采样路径（数据源方案 §4 路径三 + T9 ppp 坐标系）。"""
+    print("\n[14] PPP 市场采样")
+    pack_raw = make_pack().raw
+    # 注入 PPP 采样数据（模拟 sample_ppp 的输出）
+    pack_raw["linked"] = {
+        "flour": {
+            "K_market_median": 0.52,      # $0.52/kg
+            "K_dispersion": 0.03,         # 低离散度，确保不超限
+            "n_markets": 4,
+            "prices_usd": {"US": 0.52, "DE": 0.54, "JP": 0.51, "BR": 0.50},
+            "frame": "ppp",
+        }
+    }
+    pack = DataPack(pack_raw)
+
+    # PPP 采样品定价
+    q = quote("flour", 1, "maize", None, pack)
+    check("PPP 采样品报价成功", q.ok, q.reason)
+    check("中心值用采样中位数",
+          abs(q.sides[0].price_usd - 0.52) < 1e-9,
+          f"got {q.sides[0].price_usd}")
+    check("δ_data 用实测离散度",
+          abs(q.delta_parts["δ_data"] - 0.03) < 1e-9,
+          f"got {q.delta_parts['δ_data']}")
+
+    # PPP vs benchmark → 跨系，应有 δ_frame
+    check("PPP↔benchmark 跨系报价携带 δ_frame",
+          "δ_frame" in q.delta_parts,
+          f"parts={list(q.delta_parts.keys())}")
+
+    # PPP 新鲜度标签
+    check("PPP 采样标注市场数", "PPP采样" in q.freshness_label)
+
+    # 高离散度 PPP 采样 → δ_data 跟随
+    pack_raw2 = make_pack().raw
+    pack_raw2["linked"] = {"flour": {"K_market_median": 0.52,
+                                      "K_dispersion": 0.15, "n_markets": 4,
+                                      "prices_usd": {}, "frame": "ppp"}}
+    q2 = quote("flour", 1, "maize", None, DataPack(pack_raw2))
+    if q2.ok:
+        check("高离散度 → δ_data 跟随", abs(q2.delta_parts["δ_data"] - 0.15) < 1e-9)
+    else:
+        check("高离散度 → 可能超限拒绝（δ_data=15% 本身接近上限）", True)
+
+
 def test_real_datapack():
     print("\n[9] 真实数据包（世界银行现货基准价）")
     if not os.path.exists("data/cmo_monthly.xlsx"):
@@ -448,6 +494,7 @@ if __name__ == "__main__":
     test_gitaudit()
     test_cli_smoke()
     test_frame_consistency()
+    test_ppp_sampling()
     test_real_datapack()
     demo_scenarios()
     print(f"\n{'=' * 40}\n通过 {PASS} / {PASS + FAIL}")

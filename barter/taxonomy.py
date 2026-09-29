@@ -84,11 +84,17 @@ def get_item(code):
     return LINKED[code]
 
 
-def frame_of(code: str, pack_anchors: dict | None = None) -> str:
+def frame_of(code: str, pack: dict | None = None) -> str:
     """商品的价格坐标系（T9/E6）。
-    规则：锚定品读自身声明的 frame；挂靠品沿族谱继承锚定品的坐标系。
-    （v0.3 扩展：数据包 linked 段含 K_market 时挂靠品切换为 PPP。）
+    规则：
+    1. 数据包 linked 段含该商品的 PPP 采样 → ppp
+    2. 锚定品读自身声明的 frame
+    3. 挂靠品沿族谱继承锚定品的坐标系
     """
+    if pack is not None:
+        linked = pack.get("linked", {})
+        if code in linked and linked[code].get("frame") == "ppp":
+            return FRAME_PPP
     node = code
     while node not in ANCHORS:
         node = LINKED[node]["anchor"]

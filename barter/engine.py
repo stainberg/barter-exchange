@@ -69,8 +69,26 @@ class Quote:
 
 
 def _resolve(code: str, pack: DataPack, calib: LocalCalibration, now=None) -> SideResult:
-    """沿族谱解析到锚定价，返回每 unit 美元价 + 溯源链 + 警告。"""
+    """沿族谱解析到锚定价，返回每 unit 美元价 + 溯源链 + 警告。
+
+    v0.7：优先使用数据包中的 PPP 市场采样（K_market_median），
+    无采样时退回成本锚定 K（§4.3 双轨制）。
+    PPP 采样品的坐标系为 ppp（T9），其 δ_data 用实测离散度。"""
     item = get_item(code)
+
+    # PPP 市场采样优先（数据源方案 §4 路径三）
+    ppp_linked = pack.raw.get("linked", {}).get(code)
+    if ppp_linked and "K_market_median" in ppp_linked:
+        price = ppp_linked["K_market_median"]
+        chain = [(code, price, False)]
+        fresh = {"days": 0, "stale": False, "refuse": False,
+                 "label": f"PPP采样({ppp_linked['n_markets']}市场)"}
+        return SideResult(code=code, name=item["name"], unit=item["unit"],
+                          price_usd=price, anchor_chain=chain, hops=0,
+                          as_of=pack.raw.get("generated", "")[:10],
+                          k_calibrated=False,
+                          warnings=[]), item, code, fresh, ppp_linked
+
     chain, hops, k_cal, warnings = [], item["hops"], False, []
     # 沿 anchor 链走到根
     node, k_acc = code, 1.0
@@ -99,11 +117,13 @@ def _resolve(code: str, pack: DataPack, calib: LocalCalibration, now=None) -> Si
     return SideResult(code=code, name=item["name"], unit=item["unit"],
                       price_usd=price, anchor_chain=chain, hops=hops,
                       as_of=a["as_of"],
-                      k_calibrated=k_cal, warnings=warnings), item, root, fresh
+                      k_calibrated=k_cal, warnings=warnings), item, root, fresh, None
 
 
 def _trend_note(pack: DataPack, root_a: str, root_b: str) -> str:
     """§5.4.2 趋势 vs 噪声：用12月历史判断中心值是否处于单向趋势中。"""
+    if root_a not in pack.anchors or root_b not in pack.anchors:
+        return ""   # PPP 采样品无历史序列，跳过趋势判定
     ha = pack.anchors[root_a].get("history_12m") or []
     hb = pack.anchors[root_b].get("history_12m") or []
     if len(ha) < 6 or len(hb) < 6:
@@ -126,8 +146,8 @@ def quote(code_a: str, qty_a: float, code_b: str, qty_b: float | None,
     _depth 为 L3 递归深度（T8：分拆报价的递归深度必须为 1）。"""
     calib = calib or LocalCalibration()
     try:
-        sa, ia, ra, fa = _resolve(code_a, pack, calib, now)
-        sb, ib, rb, fb = _resolve(code_b, pack, calib, now)
+        sa, ia, ra, fa, ppp_a = _resolve(code_a, pack, calib, now)
+        sb, ib, rb, fb, ppp_b = _resolve(code_b, pack, calib, now)
     except KeyError as e:
         return Quote(ok=False, reason=f"未知商品代码: {e}")
 
@@ -147,13 +167,24 @@ def quote(code_a: str, qty_a: float, code_b: str, qty_b: float | None,
     else:
         d_pair = DELTA_PAIR_CROSS
 
-    # δ_data：两侧锚定品多源离散度取大，单源给下限
-    d_data = max(pack.source_dispersion(ra), pack.source_dispersion(rb),
-                 DELTA_DATA_FLOOR)
+    # δ_data：PPP 采样品用实测离散度；锚定品用多源离散度；单源给下限
+    if ppp_a:
+        d_data_a = max(ppp_a["K_dispersion"], DELTA_DATA_FLOOR)
+    else:
+        d_data_a = max(pack.source_dispersion(ra), DELTA_DATA_FLOOR)
+    if ppp_b:
+        d_data_b = max(ppp_b["K_dispersion"], DELTA_DATA_FLOOR)
+    else:
+        d_data_b = max(pack.source_dispersion(rb), DELTA_DATA_FLOOR)
+    d_data = max(d_data_a, d_data_b)
 
-    # δ_vol = 1.65 × σ_20d × √(T)，T=数据年龄（天）的缩放（§5.2 注）
-    va = pack.anchors[ra]["vol20d_ann"] / SQRT_20D
-    vb = pack.anchors[rb]["vol20d_ann"] / SQRT_20D
+    # δ_vol：PPP 采样品用保守默认（月频采样波动率），锚定品用实测
+    def _vol(root, ppp):
+        if ppp:
+            return 0.20 / SQRT_20D   # PPP 采样品保守默认 20% 年化
+        return pack.anchors[root]["vol20d_ann"] / SQRT_20D
+    va = _vol(ra, ppp_a)
+    vb = _vol(rb, ppp_b)
     t = max(fa["days"], fb["days"], 1)
     d_vol = 1.65 * (va + vb) / 2 * math.sqrt(t / 20)
 
@@ -162,14 +193,15 @@ def quote(code_a: str, qty_a: float, code_b: str, qty_b: float | None,
 
     # δ_frame（T9/E6）：两侧坐标系不同 → 加罚。
     # 若数据包提供双价锚的实测背离度则用实测值，否则用下限。
-    fa_frame = frame_of(code_a, pack.anchors)
-    fb_frame = frame_of(code_b, pack.anchors)
+    fa_frame = frame_of(code_a, pack.raw)
+    fb_frame = frame_of(code_b, pack.raw)
     if fa_frame != fb_frame:
-        d_frame = max(
-            DELTA_FRAME_FLOOR,
-            max(pack.anchors[ra].get("frame_spread", 0),
-                pack.anchors[rb].get("frame_spread", 0)),
+        # 双价锚实测背离度优先；PPP 侧无 frame_spread 时用下限
+        spread = max(
+            pack.anchors[ra].get("frame_spread", 0) if ra in pack.anchors else 0,
+            pack.anchors[rb].get("frame_spread", 0) if rb in pack.anchors else 0,
         )
+        d_frame = max(DELTA_FRAME_FLOOR, spread)
     else:
         d_frame = 0.0
 
@@ -210,7 +242,10 @@ SYSTEMIC_VOL_THRESHOLD = 0.60   # 年化波动率 60% 以上才算"剧烈"
 
 
 def _vol_of(pack: DataPack, root: str) -> float:
-    return pack.anchors[root]["vol20d_ann"]
+    """锚定品波动率；PPP 采样品（root 不在 anchors 中）用保守默认。"""
+    if root in pack.anchors:
+        return pack.anchors[root]["vol20d_ann"]
+    return 0.20   # PPP 采样品保守默认（月频采样）
 
 
 def _pick_intermediary(pack: DataPack, exclude: set, now=None) -> str | None:

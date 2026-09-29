@@ -110,11 +110,26 @@ def build(raw_path: str) -> dict:
                 "freq": "monthly",
             }
 
+    # --- PPP 市场采样（T9 第二坐标系，数据源方案 §4 路径三） ---
+    linked = {}
+    ppp_path = "data/ppp_samples.json"
+    if os.path.exists(ppp_path):
+        ppp = json.load(open(ppp_path, encoding="utf-8"))
+        for code, d in ppp.items():
+            linked[code] = {
+                "K_market_median": d["median"],
+                "K_dispersion": d["dispersion"],
+                "n_markets": d["n_markets"],
+                "prices_usd": d["prices_usd"],
+                "frame": "ppp",
+            }
+
     pack = {
         "generated": datetime.now(timezone.utc).isoformat(),
-        "source": "FRED daily (energy) + gold-api (metals) + FRED/WB monthly",
+        "source": "FRED daily (energy) + gold-api (metals) + FRED/WB monthly + WFP PPP",
         "code_commit": git_head(),
         "anchors": anchors,
+        "linked": linked,
     }
     return pack
 
