@@ -40,9 +40,20 @@ crises — exactly the right failure order.
    (energy, metals), monthly for low-volatility + crisis warnings.
 2. **Free-tier quota discipline (v0.2–0.3):** freemium APIs (~100 calls/mo)
    suffice — one batched pull per day, stored and republished as the pack.
-3. **Local spot-report network (v1.0, the real answer):** anonymized
-   opt-in trade-ratio reports from users — K-calibration's natural
-   byproduct; turns δ_data into locally measured truth. A data flywheel.
+3. **CPI extrapolation for stable markets:** benchmark-year measurements
+   (ICP surveys, national statistics) + sectoral CPI extrapolation, with
+   δ_est growing as √Δt from last survey. Only valid in stable-currency
+   markets — extrapolation breaks precisely where the tool is needed most,
+   so it serves as a *reference frame*, never as local pricing.
+
+**Explicitly rejected: user-reported prices.** Collection requires storage,
+moderation, anti-fraud, and compliance infrastructure whose cost dwarfs the
+value; unstandardized reports can't form a rigorous measurement system; and
+in collapsing states, user economic data is a safety liability. The system
+stays read-only, stateless, and accountable to public statistics
+(internationally recognized economic/accounting frameworks) — credibility
+through openness, not through data ownership. The unmeasured local basis is
+left to negotiation by design.
 
 ## Pipeline
 

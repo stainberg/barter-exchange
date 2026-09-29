@@ -18,3 +18,4 @@ backtest_out/*.png
 .DS_Store
 data/wfp_foodprices.csv
 data/wfp_part*.csv
+data/wfp_all.csv

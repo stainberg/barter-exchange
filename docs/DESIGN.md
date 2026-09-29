@@ -114,6 +114,22 @@ World Bank mirror), bound to the public git history, distributed via
 Releases/IPFS/peer transfer.
 Full analysis: [DATA_SOURCES.md](DATA_SOURCES.md).
 
+### Data architecture: three layers, all public
+
+1. **Global anchors (daily)**: FRED spot / gold-api / World Bank Pink Sheet —
+   basket goods, immune to local monetary collapse.
+2. **K coefficients (structural ratios, annually refreshed)**: milling yield,
+   refining ratio, feed conversion — physics, not finance.
+3. **CPI extrapolation**: benchmark-year measurement + sectoral CPI
+   extrapolation (the ICP method), with δ_est growing as √Δt from last survey.
+
+**No user data, ever.** The system is read-only and stateless: no accounts,
+no collection, no compliance surface. The local basis (how much a good
+actually trades above/below the global anchor in a specific town) is
+deliberately left to negotiation — that residual is the trader's skill,
+not the tool's failure. A ruler doesn't need to know what your table costs;
+it only needs to tell you how long it is.
+
 ## Non-goals (v1)
 
 No accounts, no matching, no chat, no fiat display, no non-tradables
