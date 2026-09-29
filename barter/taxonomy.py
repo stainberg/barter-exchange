@@ -16,6 +16,10 @@ FERT = "化肥"
 SOFT = "软商品"
 PROTEIN = "蛋白质"
 
+# 测量坐标系（T9/E6）：每个商品的价格必须声明其来源坐标系
+FRAME_BENCH = "benchmark"   # 枢纽现货基准价（FRED/gold-api/WB）
+FRAME_PPP = "ppp"           # 多地平价采样价（FAO FPMA 等，v0.3 接入）
+
 # 锚定品：价格直接来自数据包（世界银行现货基准价 / 近月期货收敛价）
 # unit: 交易单位; wb_col: 世界银行粉单列名; perishable/seasonal 见 §4.5
 ANCHORS = {
@@ -75,8 +79,20 @@ SAME_PAIR_GROUPS = [
 
 def get_item(code):
     if code in ANCHORS:
-        return {**ANCHORS[code], "anchor": None, "K": 1.0, "hops": 0}
+        return {**ANCHORS[code], "anchor": None, "K": 1.0, "hops": 0,
+                "frame": ANCHORS[code].get("frame", FRAME_BENCH)}
     return LINKED[code]
+
+
+def frame_of(code: str, pack_anchors: dict | None = None) -> str:
+    """商品的价格坐标系（T9/E6）。
+    规则：锚定品读自身声明的 frame；挂靠品沿族谱继承锚定品的坐标系。
+    （v0.3 扩展：数据包 linked 段含 K_market 时挂靠品切换为 PPP。）
+    """
+    node = code
+    while node not in ANCHORS:
+        node = LINKED[node]["anchor"]
+    return ANCHORS[node].get("frame", FRAME_BENCH)
 
 
 def all_codes():

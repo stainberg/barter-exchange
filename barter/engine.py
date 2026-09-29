@@ -13,7 +13,7 @@
 import math
 from dataclasses import dataclass, field
 
-from .taxonomy import get_item, same_pair_group
+from .taxonomy import get_item, same_pair_group, frame_of
 from .datapack import DataPack, LocalCalibration
 
 # §5.2（v0.4 · 用户决策：区间全宽 ≤ 40%，即 hi/lo ≤ 1.40）
@@ -26,6 +26,7 @@ DELTA_PAIR_CROSS = 0.11     # 跨类商品对
 DELTA_PAIR_PERISHABLE = 0.12    # §4.5：易腐品上调一档
 DELTA_DATA_FLOOR = 0.02     # 单数据源时的 δ_data 下限
 DELTA_LINEAGE_PER_HOP = 0.01    # 族谱每层 +1%
+DELTA_FRAME_FLOOR = 0.04    # T9/E6：跨坐标系混用罚项下限（双价锚实测后收窄）
 DELTA_MIN = 0.08
 DELTA_MAX = math.log(1.40) / 2   # = 16.82% ↔ hi/lo = e^(2δ) = 1.40
 SQRT_20D = math.sqrt(20)    # δ_vol 年化→20日化
@@ -159,9 +160,24 @@ def quote(code_a: str, qty_a: float, code_b: str, qty_b: float | None,
     # δ_lineage：族谱距离（§5.2），出口商品锚定加成（§5.4.3）为可扩展钩子
     d_lineage = DELTA_LINEAGE_PER_HOP * (sa.hops + sb.hops)
 
-    delta = d_pair + d_data + d_vol + d_lineage
+    # δ_frame（T9/E6）：两侧坐标系不同 → 加罚。
+    # 若数据包提供双价锚的实测背离度则用实测值，否则用下限。
+    fa_frame = frame_of(code_a, pack.anchors)
+    fb_frame = frame_of(code_b, pack.anchors)
+    if fa_frame != fb_frame:
+        d_frame = max(
+            DELTA_FRAME_FLOOR,
+            max(pack.anchors[ra].get("frame_spread", 0),
+                pack.anchors[rb].get("frame_spread", 0)),
+        )
+    else:
+        d_frame = 0.0
+
+    delta = d_pair + d_data + d_vol + d_lineage + d_frame
     parts = {"δ_pair": d_pair, "δ_data": d_data, "δ_vol": d_vol,
              "δ_lineage": d_lineage}
+    if d_frame > 0:
+        parts["δ_frame"] = d_frame
 
     if delta > DELTA_MAX:
         # L3 降级：分拆报价 —— 识别剧烈波动的一侧，只为稳定侧担保

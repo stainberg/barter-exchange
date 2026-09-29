@@ -64,6 +64,17 @@ clamp preserves monotonicity. $\blacksquare$
 **T8 — Split-quote inheritance.** The L3 credible leg is itself a standard
 quote (recursion depth 1, enforced by `_depth`), inheriting T1–T7. $\blacksquare$
 
+**T9 — Frame consistency.** Every price observation belongs to a
+*measurement frame*: the benchmark frame $B$ (hub spot benchmarks) or the
+PPP frame $P$ (multi-region sampled actual prices). A within-frame ratio
+$R^F_{AB} = P^F_A / P^F_B$ inherits correlated sampling errors that
+partially cancel; a cross-frame ratio $P^P_A / P^B_B$ carries the
+differential frame deviation $e^P/e^B$, a systematic bias that does not
+cancel. The deviation is *observable* on dual-priced anchors, so
+cross-frame quotes must carry $\delta_{frame}$ estimated from rolling
+$|P^P_a / P^B_a - 1|$ statistics. *Rule:* prefer single-frame paths;
+mixed frames always pay the measured penalty. $\blacksquare$
+
 ## 3. Why δ components add linearly
 
 Each δ component estimates a **bound** on log-space deviation, not a
@@ -83,6 +94,9 @@ conservatism (wider bands), consistent with "silence over misleading."
 - **E4** (T3): chained conversions must go through the unified value layer
   $V_g = P_{a(g)}K_g$; never splice ratios ad hoc.
 - **E5**: clauses guarded by exhaustive property tests over all goods.
+- **E6** (T9): every quote's numerator and denominator must resolve to the
+  same measurement frame; if not, δ_frame must be added. Frames are
+  declared in taxonomy/data pack, never inferred.
 
 ## 5. Empirical parameters (calibrated by backtests, adjustable)
 
@@ -95,8 +109,9 @@ conservatism (wider bands), consistent with "silence over misleading."
 | δ_min / δ_max | 8% / ln(1.4)/2 | product decision (hi/lo ≤ 1.40) |
 | Freshness thresholds | 3d / 45d (daily), 45d / 100d (monthly) | engineering |
 | Systemic-shock threshold | vol ≥ 60% ann. & ratio ≤ 1.8 | crisis calibration |
+| δ_frame (cross-frame penalty) | floor 4% | benchmark vs PPP divergence stats |
 
-Adjusting these never requires re-proving theorems; changing E1–E4 does.
+Adjusting these never requires re-proving theorems; changing E1–E4 or E6 does.
 
 ---
 

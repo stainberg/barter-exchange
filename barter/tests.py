@@ -343,6 +343,49 @@ def test_cli_smoke():
     os.unlink(pack_path)
 
 
+def test_frame_consistency():
+    """T9/E6 坐标系一致性：跨系报价必须携带 δ_frame。"""
+    print("\n[13] T9 坐标系一致性")
+    from barter import taxonomy
+    from barter.taxonomy import frame_of, FRAME_BENCH
+
+    # 当前全部为 benchmark 坐标系
+    check("锚定品默认 benchmark 系", frame_of("wheat") == FRAME_BENCH)
+    check("挂靠品继承锚定品坐标系", frame_of("flour") == FRAME_BENCH)
+
+    # 同系报价：无 δ_frame
+    pack = make_pack()
+    q = quote("wheat", 1, "maize", None, pack)
+    check("同系报价无 δ_frame", "δ_frame" not in q.delta_parts)
+
+    # 真实跨系路径：注入 PPP 系锚定品
+    taxonomy.ANCHORS["wheat_ppp"] = {
+        "name": "小麦(PPP)", "cat": taxonomy.GRAIN, "unit": "吨",
+        "wb_col": "Wheat, US HRW", "frame": "ppp"}
+    try:
+        check("PPP 锚定品坐标系为 ppp", frame_of("wheat_ppp") == "ppp")
+        # 跨系报价：wheat(benchmark) vs wheat_ppp(ppp)
+        raw = make_pack().raw
+        raw["anchors"]["wheat_ppp"] = {
+            "price_usd_per_unit": 260.0, "sources": {"FAO": 260.0},
+            "vol20d_ann": 0.15,
+            "as_of": raw["anchors"]["wheat"]["as_of"],
+            "history_12m": [260.0] * 12, "frame": "ppp",
+            "frame_spread": 0.06}
+        pack2 = DataPack(raw)
+        q2 = quote("wheat", 1, "wheat_ppp", None, pack2)
+        check("跨系报价携带 δ_frame", "δ_frame" in q2.delta_parts)
+        check("δ_frame 用实测背离度（6% > 下限4%）",
+              abs(q2.delta_parts.get("δ_frame", 0) - 0.06) < 1e-9)
+        # 对称性（E2）：反向报价 δ_frame 相同
+        q3 = quote("wheat_ppp", 1, "wheat", None, pack2)
+        check("δ_frame 双向对称（E2）",
+              abs(q2.delta_parts.get("δ_frame", 0)
+                  - q3.delta_parts.get("δ_frame", 0)) < 1e-9)
+    finally:
+        del taxonomy.ANCHORS["wheat_ppp"]
+
+
 def test_real_datapack():
     print("\n[9] 真实数据包（世界银行现货基准价）")
     if not os.path.exists("data/cmo_monthly.xlsx"):
@@ -404,6 +447,7 @@ if __name__ == "__main__":
     test_calibration()
     test_gitaudit()
     test_cli_smoke()
+    test_frame_consistency()
     test_real_datapack()
     demo_scenarios()
     print(f"\n{'=' * 40}\n通过 {PASS} / {PASS + FAIL}")
