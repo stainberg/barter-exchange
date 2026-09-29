@@ -40,6 +40,22 @@ jobs:
             exit 1
           fi
 
+      - name: 更新覆盖率徽章（仅主分支 + 一个矩阵槽，避免并发推送）
+        if: github.ref == 'refs/heads/main' && matrix.python-version == '3.12'
+        run: |
+          TOTAL=$(coverage report --format=total)
+          COLOR=red
+          if [ "$TOTAL" -ge 90 ]; then COLOR=green;
+          elif [ "$TOTAL" -ge 80 ]; then COLOR=brightgreen;
+          elif [ "$TOTAL" -ge 70 ]; then COLOR=yellow; fi
+          mkdir -p badges
+          echo "{\"schemaVersion\":1,\"label\":\"coverage\",\"message\":\"${TOTAL}%\",\"color\":\"$COLOR\"}" \
+            > badges/coverage.json
+          git config user.name "ci-bot"
+          git config user.email "ci@barter-exchange"
+          git add badges/coverage.json
+          git diff --cached --quiet || (git commit -m "ci: coverage $TOTAL%" && git push)
+
       - name: 上传覆盖率报告
         uses: actions/upload-artifact@v4
         with:

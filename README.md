@@ -4,6 +4,7 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![ci](https://github.com/stainberg/barter-exchange/actions/workflows/ci.yml/badge.svg)](https://github.com/stainberg/barter-exchange/actions/workflows/ci.yml)
+[![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/stainberg/barter-exchange/main/badges/coverage.json)](https://github.com/stainberg/barter-exchange/actions/workflows/ci.yml)
 [![datapack-daily](https://github.com/stainberg/barter-exchange/actions/workflows/datapack-daily.yml/badge.svg)](https://github.com/stainberg/barter-exchange/actions/workflows/datapack-daily.yml)
 [![Latest data pack](https://img.shields.io/badge/datapack-daily-brightgreen)](https://github.com/stainberg/barter-exchange/releases/tag/latest)
 
