@@ -34,12 +34,12 @@ jobs:
           coverage report -m
           coverage xml
 
-      - name: 覆盖率门禁（≥80%）
+      - name: 覆盖率门禁（≥90%）
         run: |
           TOTAL=$(coverage report --format=total)
           echo "总覆盖率: ${TOTAL}%"
-          if [ "$TOTAL" -lt 80 ]; then
-            echo "::error::覆盖率 ${TOTAL}% 低于门禁 80%"
+          if [ "$TOTAL" -lt 90 ]; then
+            echo "::error::覆盖率 ${TOTAL}% 低于门禁 90%"
             exit 1
           fi
 

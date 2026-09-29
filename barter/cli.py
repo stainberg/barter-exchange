@@ -87,7 +87,11 @@ def print_list():
               f" K={v['K']:.3g} {'[' + ','.join(tags) + ']' if tags else ''}")
 
 
-def show_quote(q, code_a, qty_a, code_b, qty_b, detail=False):
+def show_quote(q, code_a, qty_a, code_b, qty_b, detail=False, display=None):
+    """display = (用户输入数量, 用户输入单位A, 规范单位B) 用于输出换算。"""
+    from .units import to_canonical, from_canonical
+    from .taxonomy import get_item as gi
+
     if not q.ok:
         print(f"\n{t('no_ref')}：{q.reason}")
         if q.sides:
@@ -95,19 +99,31 @@ def show_quote(q, code_a, qty_a, code_b, qty_b, detail=False):
                 for w in s.warnings:
                     print(f"  ⚠ {w}")
         return 1
+
+    # 显示单位：输入侧用用户单位，输出侧用 B 的规范单位
+    if display:
+        qty_in, unit_a, canon_b = display
+    else:
+        qty_in, unit_a, canon_b = qty_a, q.sides[0].unit, q.sides[1].unit
+
     sa, sb = q.sides
+    # 把引擎的比率（规范单位）换算为显示单位
+    # ratio 是 1 canon_a ≈ r canon_b；显示为 1 unit_a ≈ r' canon_b
+    f_a = to_canonical(1, unit_a, sa.unit)   # 1 用户单位 = f_a 规范单位
+    disp_mid = q.ratio_mid * f_a
+    disp_lo = q.ratio_lo * f_a
+    disp_hi = q.ratio_hi * f_a
+    unit_b = canon_b
+
     if q.partial:
-        # L3 分拆报价：ratio 描述的是 稳定侧 → 中介锚
         from .taxonomy import get_item
         mi = get_item(q.intermediary)
-        total_lo, total_mid, total_hi = (q.ratio_lo * qty_a, q.ratio_mid * qty_a,
-                                         q.ratio_hi * qty_a)
         print(f"\n{'=' * 56}")
         print(f"  {t('degraded', side=q.manual_side)}")
         print(f"{'=' * 56}")
         print(f"  {t('ref_price')}（{sa.as_of}）: "
-              f"{qty_a:g} {sa.unit}{sa.name} ≈ {total_mid:.4g} {mi['unit']}{mi['name']}")
-        print(f"  {t('trust_leg')}: {total_lo:.4g} ~ {total_hi:.4g} {mi['unit']}{mi['name']}"
+              f"{qty_in:g} {unit_a} {sa.name} ≈ {disp_mid*qty_in:.4g} {mi['unit']} {mi['name']}")
+        print(f"  {t('trust_leg')}: {disp_lo*qty_in:.4g} ~ {disp_hi*qty_in:.4g} {mi['unit']} {mi['name']}"
               f"（±{q.delta:.0%}）")
         print(f"  {t('manual_leg', via=mi['name'], side=q.manual_side)}")
         print(f"  {t('freshness')}: {q.freshness_label}")
@@ -115,24 +131,15 @@ def show_quote(q, code_a, qty_a, code_b, qty_b, detail=False):
         if detail:
             print("\n" + q.detail)
         return 0
-    total_mid = q.ratio_mid * qty_a
-    total_lo = q.ratio_lo * qty_a
-    total_hi = q.ratio_hi * qty_a
+
     band = q.ratio_hi / q.ratio_lo
     print(f"\n{'=' * 56}")
-    print(f"  {t('ref_price')}: {qty_a:g} {sa.unit}{sa.name} ≈ "
-          f"{total_mid:.4g} {sb.unit}{sb.name}")
+    print(f"  {t('ref_price')}: {qty_in:g} {unit_a} {sa.name} ≈ "
+          f"{disp_mid*qty_in:.4g} {unit_b} {sb.name}")
     print(f"  {t('based_on', date=sa.as_of)}")
-    print(f"  {t('band')}: {total_lo:.4g} ~ {total_hi:.4g} {sb.unit}{sb.name}"
+    print(f"  {t('band')}: {disp_lo*qty_in:.4g} ~ {disp_hi*qty_in:.4g} {unit_b} {sb.name}"
           f"  ({t('band_ratio')} = {band:.2f}x)")
     print(f"{'=' * 56}")
-    if qty_b is not None:
-        if total_lo <= qty_b <= total_hi:
-            print(f"  {t('offer_in', qty=qty_b, unit=sb.unit)}")
-        elif qty_b < total_lo:
-            print(f"  {t('offer_low', qty=qty_b, unit=sb.unit)}")
-        else:
-            print(f"  {t('offer_high', qty=qty_b, unit=sb.unit)}")
     print(f"  {t('freshness')}: {q.freshness_label}")
     if q.trend_note:
         print(f"  📈 {q.trend_note}")
@@ -146,8 +153,10 @@ def show_quote(q, code_a, qty_a, code_b, qty_b, detail=False):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description="易货换算工具 MVP")
-    p.add_argument("goods", nargs="*", help="货物A 数量 货物B")
+    p.add_argument("goods", nargs="*",
+                   help="货物A 数量 [单位] 货物B（单位可选，默认族谱规范单位）")
     p.add_argument("--qty-b", type=float, default=None, help="对方出价（判断公道性）")
+    p.add_argument("--unit-b", default=None, help="对方出价的单位")
     p.add_argument("--list", action="store_true", help="列出全部商品")
     p.add_argument("--detail", action="store_true", help="显示计算明细")
     p.add_argument("--calibrate", nargs=2, metavar=("CODE", "K"), help="本地校准K值")
@@ -179,9 +188,10 @@ def main(argv=None):
         print(f"✓ 已本地校准 {get_item(c)['name']}({c}) K={k}")
         return 0
 
-    if len(args.goods) != 3:
+    # 解析: 货物A 数量 [单位A] 货物B（3 或 4 个位置参数）
+    if len(args.goods) not in (3, 4):
         # 交互模式
-        print("易货换算工具 MVP · 输入格式: 货物A 数量 货物B（如: 小麦 500 柴油）")
+        print("易货换算工具 MVP · 输入格式: 货物A 数量 [单位] 货物B（如: 小麦 500 kg 柴油）")
         print("输入 list 查看商品, q 退出")
         while True:
             try:
@@ -193,24 +203,79 @@ def main(argv=None):
             if line == "list":
                 print_list(); continue
             parts = line.split()
-            if len(parts) != 3:
-                print("格式: 货物A 数量 货物B"); continue
-            _run(parts[0], parts[1], parts[2], None, True, args.pack, calib)
+            if len(parts) not in (3, 4):
+                print("格式: 货物A 数量 [单位] 货物B"); continue
+            _run_interactive(parts, args.pack, calib)
         return 0
 
-    return _run(args.goods[0], args.goods[1], args.goods[2],
-                args.qty_b, args.detail, args.pack, calib, now=now)
+    return _run_cli(args.goods, args.qty_b, args.unit_b, args.detail,
+                    args.pack, calib, now=now)
 
 
-def _run(a, qty, b, qty_b, detail, pack_path, calib, now=None):
+def _parse_goods(parts):
+    """解析 [货物A, 数量, (单位A)?, 货物B] → (code_a, qty, unit_a, code_b)。"""
+    from .units import UNITS
+    from .taxonomy import get_item as gi
+    a, qty_s = parts[0], parts[1]
+    if len(parts) == 4:
+        unit_a, b = parts[2], parts[3]
+    else:
+        unit_a, b = None, parts[2]
     ca, cb = find_code(a), find_code(b)
+    if not ca or not cb:
+        return None, None, None, None
+    unit_a = unit_a or gi(ca)["unit"]
+    return ca, float(qty_s), unit_a, cb
+
+
+def _run_interactive(parts, pack_path, calib):
+    try:
+        ca, qty, unit_a, cb = _parse_goods(parts)
+        if not ca:
+            print(f"未知商品（用 --list 查看）"); return
+        _do_quote(ca, qty, unit_a, cb, None, None, True, pack_path, calib)
+    except ValueError as e:
+        print(f"输入错误: {e}")
+
+
+def _run_cli(goods, qty_b, unit_b, detail, pack_path, calib, now=None):
+    ca, qty, unit_a, cb = _parse_goods(goods)
     if not ca:
-        print(f"未知商品: {a}（用 --list 查看）"); return 1
-    if not cb:
-        print(f"未知商品: {b}（用 --list 查看）"); return 1
+        bad = goods[0] if not find_code(goods[0]) else goods[-1]
+        print(f"未知商品: {bad}（用 --list 查看）"); return 1
+    try:
+        return _do_quote(ca, qty, unit_a, cb, qty_b, unit_b, detail,
+                         pack_path, calib, now)
+    except ValueError as e:
+        print(f"输入错误: {e}"); return 1
+
+
+def _do_quote(ca, qty, unit_a, cb, qty_b, unit_b, detail, pack_path, calib, now=None):
+    """单位换算边界（units.py）→ 引擎（规范单位）→ 输出（用户单位）。"""
+    from .units import to_canonical, from_canonical
+    from .taxonomy import get_item as gi
+
+    item_a, item_b = gi(ca), gi(cb)
+    canon_a, canon_b = item_a["unit"], item_b["unit"]
+
+    qty_canon = to_canonical(qty, unit_a, canon_a)   # 用户单位 → 规范单位
     pack = DataPack.load(pack_path)
-    q = quote(ca, float(qty), cb, qty_b, pack, calib, now=now)
-    return show_quote(q, ca, float(qty), cb, qty_b, detail)
+    q = quote(ca, qty_canon, cb, None, pack, calib, now=now)
+    rc = show_quote(q, ca, qty, cb, None, detail,   # 展示用原始输入
+                    display=(qty, unit_a, canon_b))
+    if rc == 0 and qty_b is not None and q.ok and not q.partial:
+        # 对方出价换算到同一规范单位再比较
+        ub = unit_b or canon_b
+        qty_b_canon = to_canonical(qty_b, ub, canon_b)
+        total_lo = q.ratio_lo * qty_canon
+        total_hi = q.ratio_hi * qty_canon
+        if total_lo <= qty_b_canon <= total_hi:
+            print(f"  {t('offer_in', qty=qty_b, unit=ub)}")
+        elif qty_b_canon < total_lo:
+            print(f"  {t('offer_low', qty=qty_b, unit=ub)}")
+        else:
+            print(f"  {t('offer_high', qty=qty_b, unit=ub)}")
+    return rc
 
 
 if __name__ == "__main__":

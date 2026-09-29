@@ -23,46 +23,46 @@ FRAME_PPP = "ppp"           # 多地平价采样价（FAO FPMA 等，v0.3 接入
 # 锚定品：价格直接来自数据包（世界银行现货基准价 / 近月期货收敛价）
 # unit: 交易单位; wb_col: 世界银行粉单列名; perishable/seasonal 见 §4.5
 ANCHORS = {
-    "wheat":  {"name": "小麦",   "cat": GRAIN,  "unit": "吨",   "wb_col": "Wheat, US HRW"},
-    "rice":   {"name": "大米",   "cat": GRAIN,  "unit": "吨",   "wb_col": "Rice, Thai 5% ", "seasonal": True},
-    "maize":  {"name": "玉米",   "cat": GRAIN,  "unit": "吨",   "wb_col": "Maize", "seasonal": True},
-    "soyoil": {"name": "豆油",   "cat": OILSEED,"unit": "吨",   "wb_col": "Soybean oil"},
-    "sugar":  {"name": "白糖",   "cat": SOFT,   "unit": "公斤", "wb_col": "Sugar, world"},
-    "crude":  {"name": "原油",   "cat": ENERGY, "unit": "桶",   "wb_col": "Crude oil, average"},
-    "gold":   {"name": "黄金",   "cat": PMETAL, "unit": "盎司", "wb_col": "Gold"},
-    "silver": {"name": "白银",   "cat": PMETAL, "unit": "盎司", "wb_col": "Silver"},
-    "copper": {"name": "铜",     "cat": IMETAL, "unit": "吨",   "wb_col": "Copper"},
-    "aluminum":{"name": "铝",    "cat": IMETAL, "unit": "吨",   "wb_col": "Aluminum"},
-    "urea":   {"name": "尿素",   "cat": FERT,   "unit": "吨",   "wb_col": "Urea "},
+    "wheat":  {"name": "小麦",   "cat": GRAIN,  "unit": "t",   "wb_col": "Wheat, US HRW"},
+    "rice":   {"name": "大米",   "cat": GRAIN,  "unit": "t",   "wb_col": "Rice, Thai 5% ", "seasonal": True},
+    "maize":  {"name": "玉米",   "cat": GRAIN,  "unit": "t",   "wb_col": "Maize", "seasonal": True},
+    "soyoil": {"name": "豆油",   "cat": OILSEED,"unit": "t",   "wb_col": "Soybean oil"},
+    "sugar":  {"name": "白糖",   "cat": SOFT,   "unit": "kg", "wb_col": "Sugar, world"},
+    "crude":  {"name": "原油",   "cat": ENERGY, "unit": "bbl",   "wb_col": "Crude oil, average"},
+    "gold":   {"name": "黄金",   "cat": PMETAL, "unit": "oz", "wb_col": "Gold"},
+    "silver": {"name": "白银",   "cat": PMETAL, "unit": "oz", "wb_col": "Silver"},
+    "copper": {"name": "铜",     "cat": IMETAL, "unit": "t",   "wb_col": "Copper"},
+    "aluminum":{"name": "铝",    "cat": IMETAL, "unit": "t",   "wb_col": "Aluminum"},
+    "urea":   {"name": "尿素",   "cat": FERT,   "unit": "t",   "wb_col": "Urea "},
 }
 
 # 挂靠品：price = anchor_price × K（K 可本地校准，见 §4.3）
 # hops = 族谱层数（锚定品为 0）
 LINKED = {
     # 谷物加工链
-    "flour":   {"name": "面粉",     "cat": GRAIN,   "unit": "公斤", "anchor": "wheat",  "K": 1.35e-3, "hops": 1,
+    "flour":   {"name": "面粉",     "cat": GRAIN,   "unit": "kg", "anchor": "wheat",  "K": 1.35e-3, "hops": 1,
                 "note": "出粉率+加工费"},
-    "noodles": {"name": "面条",     "cat": GRAIN,   "unit": "公斤", "anchor": "flour",  "K": 1.8,     "hops": 2},
-    "bread":   {"name": "面包",     "cat": GRAIN,   "unit": "公斤", "anchor": "flour",  "K": 2.6,     "hops": 2,
+    "noodles": {"name": "面条",     "cat": GRAIN,   "unit": "kg", "anchor": "flour",  "K": 1.8,     "hops": 2},
+    "bread":   {"name": "面包",     "cat": GRAIN,   "unit": "kg", "anchor": "flour",  "K": 2.6,     "hops": 2,
                 "perishable": True},
     # 油脂链
-    "palm_oil":   {"name": "棕榈油", "cat": OILSEED, "unit": "吨", "anchor": "soyoil", "K": 0.92, "hops": 1},
-    "cook_oil_1l": {"name": "食用油(1L装)", "cat": OILSEED, "unit": "升",
+    "palm_oil":   {"name": "棕榈油", "cat": OILSEED, "unit": "t", "anchor": "soyoil", "K": 0.92, "hops": 1},
+    "cook_oil_1l": {"name": "食用油(1L装)", "cat": OILSEED, "unit": "l",
                   "anchor": "soyoil", "K": 1.15e-3, "hops": 2, "note": "分装零售系数"},
     # 能源链
-    "diesel":  {"name": "柴油",     "cat": ENERGY,  "unit": "升",   "anchor": "crude",  "K": 7.2e-3, "hops": 1,
+    "diesel":  {"name": "柴油",     "cat": ENERGY,  "unit": "l",   "anchor": "crude",  "K": 7.2e-3, "hops": 1,
                 "note": "1桶≈159L, 炼化加成"},
-    "gasoline":{"name": "汽油",     "cat": ENERGY,  "unit": "升",   "anchor": "crude",  "K": 8.0e-3, "hops": 1},
-    "kerosene":{"name": "煤油",     "cat": ENERGY,  "unit": "升",   "anchor": "crude",  "K": 7.6e-3, "hops": 1},
+    "gasoline":{"name": "汽油",     "cat": ENERGY,  "unit": "l",   "anchor": "crude",  "K": 8.0e-3, "hops": 1},
+    "kerosene":{"name": "煤油",     "cat": ENERGY,  "unit": "l",   "anchor": "crude",  "K": 7.6e-3, "hops": 1},
     # 化肥
-    "dap":     {"name": "磷酸二铵", "cat": FERT,    "unit": "吨",   "anchor": "urea",   "K": 1.55,   "hops": 1},
+    "dap":     {"name": "磷酸二铵", "cat": FERT,    "unit": "t",   "anchor": "urea",   "K": 1.55,   "hops": 1},
     # 蛋白质（高时变，§4.5 上调 δ）
-    "eggs":    {"name": "鸡蛋",     "cat": PROTEIN, "unit": "公斤", "anchor": "maize",  "K": 6.5e-3, "hops": 1,
+    "eggs":    {"name": "鸡蛋",     "cat": PROTEIN, "unit": "kg", "anchor": "maize",  "K": 6.5e-3, "hops": 1,
                 "perishable": True, "note": "饲料粮转化"},
-    "chicken": {"name": "鸡肉",     "cat": PROTEIN, "unit": "公斤", "anchor": "maize",  "K": 9.0e-3, "hops": 1,
+    "chicken": {"name": "鸡肉",     "cat": PROTEIN, "unit": "kg", "anchor": "maize",  "K": 9.0e-3, "hops": 1,
                 "perishable": True},
     # 软商品
-    "coffee":  {"name": "咖啡豆",   "cat": SOFT,    "unit": "公斤", "anchor": "sugar",  "K": 4.2,    "hops": 1,
+    "coffee":  {"name": "咖啡豆",   "cat": SOFT,    "unit": "kg", "anchor": "sugar",  "K": 4.2,    "hops": 1,
                 "note": "跨品种弱锚定, K 强烈建议本地校准"},
 }
 
