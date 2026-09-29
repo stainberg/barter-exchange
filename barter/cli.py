@@ -16,6 +16,50 @@ from .datapack import DataPack, LocalCalibration
 from .engine import quote
 from .taxonomy import ANCHORS, LINKED, get_item, all_codes
 
+LANG = "zh"  # 默认中文；--lang en 切换
+
+T = {
+    "zh": {
+        "ref_price": "参考成交价",
+        "based_on": "（基于 {date} 全球现货锚定，昨日公道价）",
+        "band": "议价区间",
+        "band_ratio": "上限/下限",
+        "freshness": "数据新鲜度",
+        "disclaimer": "※ 本结果为物物兑换参考区间，不构成定价，请在此区间内自行谈判",
+        "offer_in": "✓ 对方出价 {qty:g} {unit} 在区间内",
+        "offer_low": "✗ 对方出价 {qty:g} {unit} 低于区间下限 —— 对你不利",
+        "offer_high": "✓ 对方出价 {qty:g} {unit} 高于区间上限 —— 对你有利",
+        "wide_warn": "⚠ 区间接近宽度上限（上限 hi/lo=1.40x）：建议小额试单",
+        "no_ref": "✗ 无法给出参考值",
+        "degraded": "⚡ 降级模式：{side} 当前剧烈波动，已自动分拆报价",
+        "trust_leg": "✓ 可信段",
+        "manual_leg": "✗ 波动段: {via} → {side} 请用本地现货知识谈判",
+        "partial_note": "※ 分拆报价只担保稳定侧的价值锚定，不构成完整定价",
+    },
+    "en": {
+        "ref_price": "Reference price",
+        "based_on": "(anchored to global spot, {date})",
+        "band": "Negotiation band",
+        "band_ratio": "hi/lo",
+        "freshness": "Data freshness",
+        "disclaimer": "※ Reference band for barter negotiation — not a price quote.",
+        "offer_in": "✓ Counterparty offer {qty:g} {unit} is within the band",
+        "offer_low": "✗ Counterparty offer {qty:g} {unit} below band — unfavorable to you",
+        "offer_high": "✓ Counterparty offer {qty:g} {unit} above band — favorable to you",
+        "wide_warn": "⚠ Band near width cap (max hi/lo=1.40x): trade small first",
+        "no_ref": "✗ No reference available",
+        "degraded": "⚡ Degraded mode: {side} is highly volatile — split quote",
+        "trust_leg": "✓ Vouched leg",
+        "manual_leg": "✗ Volatile leg: {via} → {side} — negotiate with local knowledge",
+        "partial_note": "※ Split quote vouches only the stable side.",
+    },
+}
+
+
+def t(key, **kw):
+    return T[LANG][key].format(**kw) if kw else T[LANG][key]
+
+
 # 中文名 → 代码
 NAME2CODE = {v["name"]: k for k, v in {**ANCHORS, **LINKED}.items()}
 # 常用别名
@@ -45,7 +89,7 @@ def print_list():
 
 def show_quote(q, code_a, qty_a, code_b, qty_b, detail=False):
     if not q.ok:
-        print(f"\n✗ 无法给出参考值：{q.reason}")
+        print(f"\n{t('no_ref')}：{q.reason}")
         if q.sides:
             for s in q.sides:
                 for w in s.warnings:
@@ -59,43 +103,42 @@ def show_quote(q, code_a, qty_a, code_b, qty_b, detail=False):
         total_lo, total_mid, total_hi = (q.ratio_lo * qty_a, q.ratio_mid * qty_a,
                                          q.ratio_hi * qty_a)
         print(f"\n{'=' * 56}")
-        print(f"  ⚡ 降级模式：{q.manual_side} 当前剧烈波动，已自动分拆报价")
+        print(f"  {t('degraded', side=q.manual_side)}")
         print(f"{'=' * 56}")
-        print(f"  参考成交价（{sa.as_of} 现货锚定）: "
+        print(f"  {t('ref_price')}（{sa.as_of}）: "
               f"{qty_a:g} {sa.unit}{sa.name} ≈ {total_mid:.4g} {mi['unit']}{mi['name']}")
-        print(f"  ✓ 可信段: {total_lo:.4g} ~ {total_hi:.4g} {mi['unit']}{mi['name']}"
+        print(f"  {t('trust_leg')}: {total_lo:.4g} ~ {total_hi:.4g} {mi['unit']}{mi['name']}"
               f"（±{q.delta:.0%}）")
-        print(f"  ✗ 波动段: {mi['name']} → {q.manual_side} 请用本地现货知识谈判")
-        print(f"  数据新鲜度: {q.freshness_label}")
-        print("  ※ 分拆报价只担保稳定侧的价值锚定，不构成完整定价")
+        print(f"  {t('manual_leg', via=mi['name'], side=q.manual_side)}")
+        print(f"  {t('freshness')}: {q.freshness_label}")
+        print(f"  {t('partial_note')}")
         if detail:
             print("\n" + q.detail)
         return 0
     total_mid = q.ratio_mid * qty_a
     total_lo = q.ratio_lo * qty_a
     total_hi = q.ratio_hi * qty_a
-    print(f"\n{'=' * 56}")
-    # 双输出（v0.5）：参考成交价 + 议价区间（v0.6 对数对称，AB/BA 自洽）
     band = q.ratio_hi / q.ratio_lo
-    print(f"  参考成交价: {qty_a:g} {sa.unit}{sa.name} ≈ "
+    print(f"\n{'=' * 56}")
+    print(f"  {t('ref_price')}: {qty_a:g} {sa.unit}{sa.name} ≈ "
           f"{total_mid:.4g} {sb.unit}{sb.name}")
-    print(f"  （基于 {sa.as_of} 全球现货锚定，昨日公道价）")
-    print(f"  议价区间:   {total_lo:.4g} ~ {total_hi:.4g} {sb.unit}{sb.name}"
-          f"  （上限/下限 = {band:.2f}x）")
+    print(f"  {t('based_on', date=sa.as_of)}")
+    print(f"  {t('band')}: {total_lo:.4g} ~ {total_hi:.4g} {sb.unit}{sb.name}"
+          f"  ({t('band_ratio')} = {band:.2f}x)")
     print(f"{'=' * 56}")
     if qty_b is not None:
         if total_lo <= qty_b <= total_hi:
-            print(f"  ✓ 对方出价 {qty_b:g} {sb.unit} 在区间内")
+            print(f"  {t('offer_in', qty=qty_b, unit=sb.unit)}")
         elif qty_b < total_lo:
-            print(f"  ✗ 对方出价 {qty_b:g} {sb.unit} 低于区间下限 —— 对你不利")
+            print(f"  {t('offer_low', qty=qty_b, unit=sb.unit)}")
         else:
-            print(f"  ✓ 对方出价 {qty_b:g} {sb.unit} 高于区间上限 —— 对你有利")
-    print(f"  数据新鲜度: {q.freshness_label}")
+            print(f"  {t('offer_high', qty=qty_b, unit=sb.unit)}")
+    print(f"  {t('freshness')}: {q.freshness_label}")
     if q.trend_note:
         print(f"  📈 {q.trend_note}")
     if q.delta >= 0.14:
-        print(f"  ⚠ 区间接近宽度上限（上限 hi/lo=1.40x）：建议小额试单")
-    print("  ※ 本结果为物物兑换参考区间，不构成定价，请在此区间内自行谈判")
+        print(f"  {t('wide_warn')}")
+    print(f"  {t('disclaimer')}")
     if detail:
         print("\n" + q.detail)
     return 0
@@ -109,9 +152,13 @@ def main(argv=None):
     p.add_argument("--detail", action="store_true", help="显示计算明细")
     p.add_argument("--calibrate", nargs=2, metavar=("CODE", "K"), help="本地校准K值")
     p.add_argument("--pack", default="data/datapack_latest.json", help="数据包路径")
+    p.add_argument("--lang", choices=["zh", "en"], default="zh", help="输出语言")
     p.add_argument("--now", default=None,
                    help="回放模式：指定'当下'日期 YYYY-MM-DD（用于演示历史数据包）")
     args = p.parse_args(argv)
+
+    global LANG
+    LANG = args.lang
 
     now = None
     if args.now:

@@ -1,140 +1,92 @@
-# Design Philosophy
+# Design
 
 > [README](../README.md) · [Design](DESIGN.md) · [Math](MATH.md) · [Backtesting](BACKTESTING.md) · [Data Sources](DATA_SOURCES.md)
 
 ---
 
-> The barter reference tool: a ruler, not a currency.
+## Problem
 
-## The problem
-
-When a currency collapses, what breaks is not trade itself but the **price signal**.
-A merchant holding wheat and a driver holding diesel both know their goods have
-value — what they lack is a shared, neutral answer to *"how much of yours for
-how much of mine?"* Any price quoted in the local currency is meaningless within
-weeks; official exchange rates diverge from reality by orders of magnitude.
+When a currency collapses, what breaks is not trade but the **price signal**.
+Both sides of a barter know their goods have value; what they lack is a shared,
+neutral answer to *"how much of yours for how much of mine?"*
 
 ## What this tool is
 
 A **barter conversion ruler**. Input both goods; get:
 
-- a **reference price** — yesterday's fair ratio, anchored to global spot benchmarks
-- a **negotiation band** — the acceptable range around it (hard-capped at hi/lo ≤ 1.40)
+- **Reference price** — yesterday's fair ratio, anchored to global commodity
+  spot benchmarks (never to any collapsing currency);
+- **Negotiation band** — the acceptable range around it, hard-capped at
+  hi/lo ≤ 1.40.
 
-It never touches goods, money, matching, or settlement. The notional unit exists
-only for the duration of one calculation and is never shown to users.
+It never touches goods, money, matching, or settlement. A ruler, not a currency.
 
-## What it deliberately is not
+## Core decisions
 
-- Not a pricing intermediary, marketplace, or broker
-- Not a currency, unit of account, or store of value
-- Not a payment or clearing system
+**1. Anchor to global commodity spot prices, never to collapsing currency.**
+Local fiat enters no formula; it cancels in the ratio (proof: T1, MATH.md).
+Monetary noise excluded by construction; real scarcity signals preserved.
 
-This is why the tool carries almost no regulatory surface and almost no trust
-burden: users need only trust that the *algorithm* is neutral, not that any
-operator will honor redemption.
+**2. A band, never a point.**
+Precise values are false certainty. The band width itself is information —
+a widening band warns of market stress. If a narrow band (≤ 40% full width)
+cannot be produced, the tool degrades or stays silent rather than fake
+precision. Silence over misleading.
 
-## Core design decisions and why
-
-### 1. Anchored to global commodity spot prices — never to any collapsing currency
-
-Fiat from a collapsing economy enters no formula. If a local currency appears at
-all, it is a pure display-layer scaling factor that cancels in division
-(proof: T1 in [MATH.md](MATH.md)). The system is immune to monetary noise by
-construction; real scarcity signals (local premia) are preserved and shown, not
-smoothed away.
-
-### 2. A band, never a point
-
-Precise values would be false certainty: data has noise, latency, and regional
-dispersion. The band width itself is information — a suddenly widening band is a
-market-health warning. The band is where negotiation happens.
-
-**Hard constraint: band full-width ≤ 40% (hi/lo ≤ 1.40).** A range where the top
-is 2.3× the bottom is not a price reference — it is noise. If the system cannot
-produce a narrow band, it degrades or stays silent. Every number it does emit is
-trustworthy. (Calibration: [BACKTESTING.md](BACKTESTING.md).)
-
-### 3. Degradation ladder instead of binary failure
+**3. Degradation ladder, not binary failure.**
 
 ```
 L0  normal quote
-L1  band widens + caution warning        (volatility rising)
-L2  trend-following center               (directional move ≠ noise)
+L1  band widens + caution
+L2  trend-following center (directional move ≠ noise)
 L3  split quote: vouch only the stable side
-    ("1t wheat ≈ X oz gold (trustworthy) — gold→diesel: negotiate locally")
 L4  full refusal
 ```
 
-Refusal happens only when nothing referenceable remains: stale data (>45d),
-systemic shock (both sides spiking together), or no usable intermediary anchor.
-Because the notional unit is transient, one commodity's collapse never poisons
-unrelated pairs.
+Refusal only when nothing referenceable remains. One commodity's collapse
+never poisons unrelated pairs — the notional unit is transient per quote.
 
-### 4. Honesty over availability
+**4. Two measurement frames, never mixed without penalty.**
+Benchmark frame (hub spot prices) and PPP frame (multi-region sampled actual
+prices) are two coordinate systems. Within-frame ratios inherit correlated
+errors that cancel; cross-frame ratios carry a systematic, measurable bias
+and pay δ_frame (proof: T9, MATH.md).
 
-The system says "I don't know" rather than inventing precision. Every quote
-ships with: data freshness, full δ decomposition, and the anchor chain.
-Neutrality is enforced by auditability, not promises.
+**5. Public history as trust root — no private keys.**
+Every data pack binds to a git commit. Clients verify existence, settlement
+(≥ 24h), and multi-mirror agreement. Wrongdoing is a public broadcast, not a
+hidden act. OpenTimestamps anchors the history to Bitcoin as an existence
+proof that survives even the platform.
 
-### 5. Trust root: public history, not private keys
-
-Data packs bind to the **public git history** (a `code_commit` field), not to
-a private key held by the maintainer. Fairness comes from *accountability*:
-anyone can publish bad data, but no one can do it invisibly — git's hash
-chain plus multi-mirror agreement makes history rewriting a public act.
-An optional OpenTimestamps anchor to Bitcoin adds a "history was not
-rewritten" proof that survives even the platform itself. No private keys
-exist anywhere in the system — trust lives in public, replicated,
-tamper-evident history. Details:
-[DATA_SOURCES.md](DATA_SOURCES.md).
-
-### 6. Mathematics must be provable; backtests only calibrate parameters
-
-The calculation structure is theorem-proven ([MATH.md](MATH.md)):
-numéraire invariance, band reciprocity (AB/BA consistency), transitivity,
-monotonic honesty. Backtests (four currency collapses, the 2020 oil crash,
-the 2025 Iran conflict) exist solely to calibrate empirical parameters —
-band components, volatility windows, refusal thresholds.
+**6. Structure is proven; backtests only calibrate parameters.**
+See [MATH.md](MATH.md) (T1–T9, E1–E6) and [BACKTESTING.md](BACKTESTING.md).
 
 ## Commodity taxonomy
 
-Anchors (global benchmark prices): wheat, rice, maize, soybean oil, sugar,
-crude oil, gold, silver, copper, aluminum, urea.
+Anchors (global benchmarks): wheat, rice, maize, soybean oil, sugar, crude
+oil, gold, silver, copper, aluminum, urea.
 
 Linked goods hang off anchors via coefficients K (`price = anchor × K`),
-calibratable locally on-device. Perishables get a wider base band; seasonal
-goods need season-split K. Far-dated futures are forbidden as anchors — barter
+calibratable on-device. Perishables get a wider base band; seasonal goods
+need season-split K. Far-dated futures are forbidden as anchors — barter
 prices the deliverable-now, not expectations.
 
-## Data pipeline
+## Data architecture
 
-Daily pack built by GitHub Actions from free public sources (FRED, gold-api,
-World Bank mirror), bound to the public git history, distributed via
-Releases/IPFS/peer transfer.
-Full analysis: [DATA_SOURCES.md](DATA_SOURCES.md).
+Three layers, all public; no user data, ever:
 
-### Data architecture: three layers, all public
+1. **Global anchors (daily)** — FRED spot / gold-api / World Bank;
+2. **K coefficients (annually)** — structural ratios (milling, refining,
+   feed conversion); physics, not finance;
+3. **CPI extrapolation** — benchmark-year measurement + sectoral CPI
+   extrapolation, with δ_est growing as √Δt from last survey. Valid only in
+   stable-currency markets; a reference frame, never local pricing.
 
-1. **Global anchors (daily)**: FRED spot / gold-api / World Bank Pink Sheet —
-   basket goods, immune to local monetary collapse.
-2. **K coefficients (structural ratios, annually refreshed)**: milling yield,
-   refining ratio, feed conversion — physics, not finance.
-3. **CPI extrapolation**: benchmark-year measurement + sectoral CPI
-   extrapolation (the ICP method), with δ_est growing as √Δt from last survey.
-
-**No user data, ever.** The system is read-only and stateless: no accounts,
-no collection, no compliance surface. The local basis (how much a good
-actually trades above/below the global anchor in a specific town) is
-deliberately left to negotiation — that residual is the trader's skill,
-not the tool's failure. A ruler doesn't need to know what your table costs;
-it only needs to tell you how long it is.
+The local basis (how much a good actually trades above/below the global
+anchor in a specific town) is deliberately left to negotiation — that
+residual is the trader's skill, not the tool's failure.
 
 ## Non-goals (v1)
 
 No accounts, no matching, no chat, no fiat display, no non-tradables
 (housing, local services, electricity).
-
----
-
-*Keywords: barter, currency collapse, hyperinflation, commodity anchor, reference price, negotiation band*
