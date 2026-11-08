@@ -1,7 +1,7 @@
 {
- "generated": "2026-11-07T12:04:09.872797+00:00",
+ "generated": "2026-11-08T12:24:39.532071+00:00",
  "source": "FRED daily (energy) + gold-api (metals) + FRED/WB monthly + WFP PPP",
- "code_commit": "e8f10d890b30045fe2ac08643fa7a9728ff1f702",
+ "code_commit": "03a6e461f93adc5be6201302e2a76529b0feb3dd",
  "anchors": {
   "crude": {
    "price_usd_per_unit": 107.03,
@@ -34,7 +34,7 @@
    },
    "vol20d_ann": 0.15,
    "history_12m": [],
-   "as_of": "2026-11-07",
+   "as_of": "2026-11-08",
    "freq": "daily"
   },
   "silver": {
@@ -44,7 +44,7 @@
    },
    "vol20d_ann": 0.15,
    "history_12m": [],
-   "as_of": "2026-11-07",
+   "as_of": "2026-11-08",
    "freq": "daily"
   },
   "copper": {
@@ -54,7 +54,7 @@
    },
    "vol20d_ann": 0.15,
    "history_12m": [],
-   "as_of": "2026-11-07",
+   "as_of": "2026-11-08",
    "freq": "daily"
   },
   "wheat": {
