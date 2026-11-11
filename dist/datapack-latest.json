@@ -1,7 +1,7 @@
 {
- "generated": "2026-11-10T13:55:55.404024+00:00",
+ "generated": "2026-11-11T13:10:07.843172+00:00",
  "source": "FRED daily (energy) + gold-api (metals) + FRED/WB monthly + WFP PPP",
- "code_commit": "93a5a445e962a491e3d0f23971bf48b7b4e4e423",
+ "code_commit": "b8cf174092173c5192166623fa8d162b530b6e26",
  "anchors": {
   "crude": {
    "price_usd_per_unit": 107.03,
@@ -28,33 +28,33 @@
    "freq": "daily"
   },
   "gold": {
-   "price_usd_per_unit": 4057.399902,
+   "price_usd_per_unit": 4042.0,
    "sources": {
-    "gold-api": 4057.399902
+    "gold-api": 4042.0
    },
    "vol20d_ann": 0.15,
    "history_12m": [],
-   "as_of": "2026-11-10",
+   "as_of": "2026-11-11",
    "freq": "daily"
   },
   "silver": {
-   "price_usd_per_unit": 52.018002,
+   "price_usd_per_unit": 52.867001,
    "sources": {
-    "gold-api": 52.018002
+    "gold-api": 52.867001
    },
    "vol20d_ann": 0.15,
    "history_12m": [],
-   "as_of": "2026-11-10",
+   "as_of": "2026-11-11",
    "freq": "daily"
   },
   "copper": {
-   "price_usd_per_unit": 14014.149842,
+   "price_usd_per_unit": 13908.48461,
    "sources": {
-    "gold-api": 14014.149842
+    "gold-api": 13908.48461
    },
    "vol20d_ann": 0.15,
    "history_12m": [],
-   "as_of": "2026-11-10",
+   "as_of": "2026-11-11",
    "freq": "daily"
   },
   "wheat": {
